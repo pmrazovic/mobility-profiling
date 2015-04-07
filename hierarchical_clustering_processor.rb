@@ -4,7 +4,7 @@ module HierarchicalClusteringProcessor
   Node = Struct.new(:points, :start_point, :end_point, :parent_node, :split_point, :children_nodes)
   
   public
-    def self.run(r_plot, r_order, r_points)
+    def self.run(r_plot, r_order, points)
       min_cluster_size = 3
       min_neighborhood_size = 2
       min_maxima_ratio = 0.0005
@@ -17,18 +17,14 @@ module HierarchicalClusteringProcessor
       local_maxima_points = find_local_maxima(r_plot, r_order, nghsize)
 
       root_node = Node.new(r_order, 0, r_order.size-1, nil, nil, [])
-      cluster_tree(root_node, nil, local_maxima_points, r_plot, r_order, r_points, min_cluster_size, 0)
+      cluster_tree(root_node, nil, local_maxima_points, r_plot, r_order, min_cluster_size, 0)
 
-      return extract_node_levels(root_node, r_points)
+      return extract_node_levels(root_node, points)
     end
 
   private
-    def self.cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, r_points, min_cluster_size,level)
-      max_coords = r_points[true,node.points].max(1)
-      min_coords = r_points[true,node.points].min(1) 
-      if (node.points.size <= 3) ||
-         (distance_in_meters(max_coords, min_coords) <= 500) ||
-         (local_maxima_points.size == 0)
+    def self.cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, min_cluster_size,level)
+      if (local_maxima_points.size == 0)
          return
       end
 
@@ -55,7 +51,7 @@ module HierarchicalClusteringProcessor
       # if r_plot[s] < significant_min
       #   node.split_point = nil
       #   #if splitpoint is not significant, ignore this split and continue
-      #   cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, r_points, min_cluster_size,level)
+      #   cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, min_cluster_size,level)
       #   return
       # end
 
@@ -85,7 +81,7 @@ module HierarchicalClusteringProcessor
         if (avg_reach_value_1 / r_plot[s].to_f) >= rejection_ratio and (avg_reach_value_2 / r_plot[s].to_f) >= rejection_ratio
           node.split_point = nil
           #since splitpoint is not significant, ignore this split and continue (reject both child nodes)
-          cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, r_points, min_cluster_size,level)
+          cluster_tree(node, parent_node, local_maxima_points, r_plot, r_order, min_cluster_size,level)
           return
         end
       end
@@ -115,10 +111,10 @@ module HierarchicalClusteringProcessor
       node_list.each do |node_i,maxima_points_i|
         if bypass_node 
           parent_node.children_nodes << node_i
-          cluster_tree(node_i, parent_node, maxima_points_i, r_plot, r_order, r_points, min_cluster_size,level+1)
+          cluster_tree(node_i, parent_node, maxima_points_i, r_plot, r_order, min_cluster_size,level+1)
         else
           node.children_nodes << node_i
-          cluster_tree(node_i, node, maxima_points_i, r_plot, r_order, r_points, min_cluster_size,level+1)
+          cluster_tree(node_i, node, maxima_points_i, r_plot, r_order, min_cluster_size,level+1)
         end
       end
 
@@ -153,7 +149,7 @@ module HierarchicalClusteringProcessor
     end
 
     def self.distance(p1,p2)
-      Math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+      Math.sqrt((p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
     end
 
     def self.to_radians(degrees)
@@ -183,7 +179,7 @@ module HierarchicalClusteringProcessor
         if distance(r_points[true,current[:node].points[1]],r_points[true,current[:node].points[2]])/distance(r_points[true,current[:node].points[0]],r_points[true,current[:node].points[1]]).to_f < 0.3
           current[:node].points = current[:node].points.delete_at(0)
         end
-        framework[current[:level]] << current[:node]
+        framework[current[:level]] << r_points[true,current[:node].points].to_a
         current[:node].children_nodes.each { |cn| queue << {:node => cn, :level => current[:level] + 1} } 
       end
 
