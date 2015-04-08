@@ -2,9 +2,12 @@ GEM
   remote: https://rubygems.org/
   specs:
     narray (0.6.1.1)
+    ruby-lapack (1.7.1)
+      narray
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   narray (~> 0.6.1.1)
+  ruby-lapack (~> 1.7.1)
