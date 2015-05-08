@@ -166,21 +166,36 @@ module HierarchicalClusteringProcessor
 
     def self.extract_node_levels(root_node, r_points)
       framework = Array.new
-      level = 0
-      queue = [{:node => root_node, :level => 0}]
+      queue = [ {:points => r_points[true,root_node.points].to_a,
+                 :parent_node => nil,
+                 :children_nodes => root_node.children_nodes,
+                 :level_idx => 0} ]
 
       while queue.size > 0
         current = queue.shift
-        framework[current[:level]] ||= []
+        framework[current[:level_idx]] ||= []
+        
         # removing outliers at the beginning and end of cluster
-        if distance(r_points[true,current[:node].points[-2]],r_points[true,current[:node].points[-3]])/distance(r_points[true,current[:node].points[-1]],r_points[true,current[:node].points[-2]]).to_f < 0.3
-          current[:node].points = current[:node].points.delete_at(-1)
+        if distance(current[:points][-2],current[:points][-3])/distance(current[:points][-1],current[:points][-2]).to_f < 0.3
+          current[:points].delete_at(-1)
         end
-        if distance(r_points[true,current[:node].points[1]],r_points[true,current[:node].points[2]])/distance(r_points[true,current[:node].points[0]],r_points[true,current[:node].points[1]]).to_f < 0.3
-          current[:node].points = current[:node].points.delete_at(0)
+        if distance(current[:points][1],current[:points][2])/distance(current[:points][0],current[:points][1]).to_f < 0.3
+          current[:points].delete_at(0)
         end
-        framework[current[:level]] << r_points[true,current[:node].points].to_a
-        current[:node].children_nodes.each { |cn| queue << {:node => cn, :level => current[:level] + 1} } 
+
+        current_children_nodes = []
+        current[:children_nodes].each do |cn|
+          current_children_nodes << { :points => r_points[true,cn.points].to_a,
+                                      :parent_node => current,
+                                      :children_nodes => cn.children_nodes,
+                                      :level_idx => current[:level_idx] + 1}
+        end
+
+        current[:children_nodes] = current_children_nodes
+        current[:cluster_idx] = framework[current[:level_idx]].size
+        framework[current[:level_idx]] << current
+
+        queue += current[:children_nodes]
       end
 
       return framework

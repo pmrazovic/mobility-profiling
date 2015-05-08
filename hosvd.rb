@@ -17,9 +17,9 @@ module HOSVD
     end
     
     # number of principal components
-    c1 = 0.5
-    c2 = 0.5
-    c3 = 0.8
+    c1 = 0.3
+    c2 = 0.3
+    c3 = 0.3
 
     # c-dimensionally reduced mode matrices
     u1 = mode_matrices[0][0..(mode_matrices[0].shape[0]*c1).ceil-1,true]
